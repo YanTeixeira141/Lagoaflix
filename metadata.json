@@ -1,0 +1,6 @@
+{
+  "name": "LagoaFlix",
+  "description": "Aplicativo LagoaFlix para gestão de viagem em grupo com controle de finanças, comprovantes, logística de transporte e sugestões.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with Netflix-like identity and Google Auth link",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "linkedUid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "totalPago": { "type": "number" }
+      },
+      "required": ["id", "nome", "role"]
+    },
+    "Pagamento": {
+      "title": "Pagamento",
+      "description": "Comprovante de pagamento de mensalidade",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "valor": { "type": "number" },
+        "mesRef": { "type": "string" },
+        "comprovanteUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["pendente", "aprovado"] }
+      },
+      "required": ["id", "uid", "valor", "mesRef", "comprovanteUrl", "status"]
+    },
+    "Gasto": {
+      "title": "Gasto",
+      "description": "Despesas coletivas da viagem",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "categoria": { "type": "string", "enum": ["Moradia", "Transporte", "Alimentação", "Outros"] },
+        "descricao": { "type": "string" },
+        "valor": { "type": "number" }
+      },
+      "required": ["id", "categoria", "descricao", "valor"]
+    },
+    "LogisticaInfo": {
+      "title": "LogisticaInfo",
+      "description": "Informações gerais da viagem e transporte",
+      "type": "object",
+      "properties": {
+        "dataIda": { "type": "string" },
+        "dataVolta": { "type": "string" },
+        "enderecoPartida": { "type": "string" },
+        "enderecoDestino": { "type": "string" },
+        "distanciaKm": { "type": "number" },
+        "tempoEstimado": { "type": "string" }
+      },
+      "required": ["dataIda", "dataVolta", "enderecoPartida", "enderecoDestino"]
+    },
+    "Sugestao": {
+      "title": "Sugestao",
+      "description": "Sugestões anônimas dos participantes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "texto": { "type": "string" }
+      },
+      "required": ["id", "texto"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Documentos dos usuários indexados por profileId"
+    },
+    "/pagamentos/{pagamentoId}": {
+      "schema": "Pagamento",
+      "description": "Comprovantes de pagamento de mensalidade"
+    },
+    "/gastos/{gastoId}": {
+      "schema": "Gasto",
+      "description": "Despesas adicionadas e divididas"
+    },
+    "/logistica/{infoId}": {
+      "schema": "LogisticaInfo",
+      "description": "Documento único contendo cronograma e rotas da viagem"
+    },
+    "/sugestoes/{sugestaoId}": {
+      "schema": "Sugestao",
+      "description": "Sugestões anônimas"
+    }
+  }
+}

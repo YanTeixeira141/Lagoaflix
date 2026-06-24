@@ -1,0 +1,33 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    "config": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "users": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "pagamentos": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "gastos": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "logistica": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "configuracoes": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "sugestoes": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}
