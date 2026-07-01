@@ -279,8 +279,49 @@ export default function App() {
 function DashboardView() {
   const { users, currentUser, logistica, pixKey, gastos } = useFirebase();
 
-  // Copied Pix notification state
-  const [copiedPix, setCopiedPix] = useState(false);
+  // Copied Pix notification states
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedCopiaCola, setCopiedCopiaCola] = useState(false);
+
+  // Helper function to generate standard Pix static code for a key (e.g., phone 11977181972)
+  const generatePixCopiaCola = (key: string): string => {
+    // Format key for phone
+    const cleanKey = key.replace(/\D/g, '');
+    let formattedKey = cleanKey;
+    if (cleanKey.length === 11) {
+      formattedKey = '+55' + cleanKey;
+    }
+
+    // ID 26: Merchant Account Information
+    const gui = "0014br.gov.bcb.pix";
+    const keyField = `01${formattedKey.length.toString().padStart(2, '0')}${formattedKey}`;
+    const id26Content = `${gui}${keyField}`;
+    const id26 = `26${id26Content.length.toString().padStart(2, '0')}${id26Content}`;
+
+    const id52 = "52040000"; // Merchant Category Code
+    const id53 = "5303986";  // Currency Code: BRL
+    const id58 = "5802BR";   // Country Code: BR
+    const id59 = "5912YAN TEIXEIRA"; // Merchant Name (12 chars)
+    const id60 = "6009SAO PAULO";    // Merchant City (9 chars)
+    const id62 = "62070503***";      // Additional Data Field (TXID ***)
+
+    const payload = `000201010211${id26}${id52}${id53}${id58}${id59}${id60}${id62}6304`;
+
+    // CRC16 CCITT
+    let crc = 0xFFFF;
+    for (let i = 0; i < payload.length; i++) {
+      crc ^= (payload.charCodeAt(i) << 8);
+      for (let j = 0; j < 8; j++) {
+        if ((crc & 0x8000) !== 0) {
+          crc = (crc << 1) ^ 0x1021;
+        } else {
+          crc = crc << 1;
+        }
+      }
+    }
+    const crcHex = (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+    return `${payload}${crcHex}`;
+  };
 
   // Dynamic quota computation
   const totalGeralGastos = (gastos || []).reduce((acc, curr) => acc + (curr.valor || 0), 0);
@@ -318,10 +359,16 @@ function DashboardView() {
     return () => clearInterval(interval);
   }, []);
 
-  const copyPixKey = () => {
-    navigator.clipboard.writeText(pixKey);
-    setCopiedPix(true);
-    setTimeout(() => setCopiedPix(false), 2000);
+  const copyKeyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 2000);
+  };
+
+  const copyCopiaColaToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCopiaCola(true);
+    setTimeout(() => setCopiedCopiaCola(false), 2000);
   };
 
   const formatCurrency = (val: number) => {
@@ -438,20 +485,28 @@ function DashboardView() {
               </h3>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 border border-gray-100 rounded-2xl p-4">
-                <span className="text-[9px] text-slate-400 uppercase font-black tracking-wider block">Valor da Cota</span>
-                <span className="text-xl md:text-2xl font-mono font-black text-slate-800 block mt-1">{formatCurrency(quotaPerPerson)}</span>
-              </div>
-              <div className="bg-neutral-900 text-white rounded-2xl p-4">
-                <span className="text-[9px] text-neutral-400 uppercase font-black tracking-wider block">Total Arrecadado</span>
-                <span className="text-xl md:text-2xl font-mono font-black text-emerald-400 block mt-1">{formatCurrency(totalGroupCollected)}</span>
-              </div>
+            <div className="bg-slate-50 border border-gray-100 rounded-2xl p-5 text-center">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Valor por pessoa</span>
+              <span className="text-4xl md:text-5xl font-mono font-black text-slate-900 block mt-1.5">
+                {formatCurrency(quotaPerPerson)}
+              </span>
             </div>
           </div>
 
-          <div className="p-3 bg-slate-50 border border-gray-100 rounded-2xl text-[11px] text-slate-500 leading-normal font-normal">
-            A meta mínima estimada para a hospedagem e custos básicos por participante é de <strong className="text-slate-800">{formatCurrency(quotaPerPerson)}</strong>. O administrador fará a baixa manual dos pagamentos.
+          <div className="p-4 bg-rose-50/60 border border-rose-100 rounded-2xl text-left space-y-2">
+            <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider block">⚠️ Regras de Pagamento</span>
+            <ul className="text-[11px] text-rose-900 font-semibold space-y-2 list-disc pl-4 leading-relaxed">
+              <li>O vencimento é para todo dia 10.</li>
+              <li>
+                Quem não realizar o pagamento integral <strong className="font-extrabold text-rose-950">NÃO participará</strong> da viagem (mesmo tendo pago uma parte).
+              </li>
+              <li>
+                Em caso de desistência <strong className="font-extrabold text-rose-950">não terá</strong> a possibilidade da devolução do valor pago.
+              </li>
+              <li className="leading-snug">
+                Os valores e outros aspectos da viagem (como data e horário) poderão mudar de acordo com os custos e/ou quantidade de pessoas <strong className="font-extrabold text-rose-950">OU ALGUMA OUTRA NECESSIDADE</strong>.
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -463,24 +518,48 @@ function DashboardView() {
           </div>
 
           <p className="text-[11px] text-slate-500 leading-normal font-medium">
-            Deposite parcelas ou faça o pagamento de despesas de forma centralizada e direta para o cofre da viagem LagoaFlix.
+            Realize o pagamento das parcelas de forma prática e direta. Escaneie o QR Code abaixo pelo aplicativo do seu banco ou copie o código Copia e Cola.
           </p>
 
-          <div className="bg-slate-50 border border-gray-100 rounded-2xl p-3.5 space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 font-bold">Chave Pix Coleta:</span>
-              <span className="bg-white border border-gray-200/65 text-slate-700 font-mono font-bold px-2 py-1 rounded text-[11px] select-all max-w-[170px] truncate" title={pixKey}>
-                {pixKey}
+          <div className="bg-slate-50 border border-gray-100 rounded-2xl p-4 flex flex-col items-center space-y-4">
+            {/* Visual QR Code Image */}
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-3xs flex flex-col items-center justify-center">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(generatePixCopiaCola("11977181972"))}`}
+                alt="QR Code Pix"
+                className="w-36 h-36"
+                referrerPolicy="no-referrer"
+              />
+              <span className="text-[9px] text-slate-400 font-bold uppercase mt-2 tracking-wider text-center">
+                Escaneie para definir e pagar qualquer valor
               </span>
             </div>
-            
-            <button
-              onClick={copyPixKey}
-              className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer select-none"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              {copiedPix ? 'Chave Copiada!' : 'Copiar Chave Pix'}
-            </button>
+
+            <div className="w-full space-y-2.5">
+              <div className="flex items-center justify-between text-xs bg-white border border-gray-150 rounded-xl px-3 py-2">
+                <span className="text-slate-500 font-bold">Chave Celular:</span>
+                <span className="text-slate-700 font-mono font-bold select-all">
+                  (11) 97718-1972
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  onClick={() => copyCopiaColaToClipboard(generatePixCopiaCola("11977181972"))}
+                  className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer select-none"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  {copiedCopiaCola ? 'Código Copiado!' : 'Copiar Copia e Cola'}
+                </button>
+                <button
+                  onClick={() => copyKeyToClipboard("11977181972")}
+                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 rounded-xl text-xs font-black tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer select-none"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  {copiedKey ? 'Chave Copiada!' : 'Copiar Chave Pix'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
